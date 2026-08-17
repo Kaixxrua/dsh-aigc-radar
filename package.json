@@ -1,0 +1,51 @@
+{
+  "name": "dsh-aigc-radar",
+  "version": "0.1.0",
+  "description": "AIGC Radar for DeepSeek Harness — curated AI project search with native search cards, powered by the AIGC_NEWS library",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts --format esm --dts --external @deepseek-ai/cordis --external @deepseek-ai/dsh-tools --external @deepseek-ai/schemastery",
+    "prepare": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "node scripts/verify-plugin.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": "^0.0.1-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/dsh-tools": "0.0.1-rc.1",
+    "@deepseek-ai/schemastery": "3.18.1",
+    "@types/node": "^26.2.0",
+    "tsdown": "0.22.14",
+    "typescript": "~5.8.0"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "aigc-radar",
+    "github-projects",
+    "ai-search"
+  ],
+  "license": "MIT"
+}

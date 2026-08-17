@@ -1,0 +1,8 @@
+# dsh-aigc-radar bundle layer: inserts the AIGC Radar plugin row into any
+# profile that lists this bundle. Users can override this row by id from their
+# own cordis.patch.yml (later layer wins; a patch replaces the row's whole
+# config), e.g. to point at a self-hosted AIGC_NEWS deployment.
+
+- insert:
+    - id: aigc-radar
+      name: dsh-aigc-radar
