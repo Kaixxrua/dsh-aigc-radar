@@ -2,7 +2,7 @@
 
 [AIGC Radar](https://aigcnews.cn) project search for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`).
 
-Find AI/Agent/MCP/RAG/LLM open-source projects without leaving your agent session. Results render as **native search cards** in the dsh Web UI — not raw markdown — and survive session replay.
+**Stop rebuilding what already exists.** While you plan and implement, the agent proactively checks the curated AIGC Radar library for mature, battle-tested projects that already solve your problem — before you write a line of code. Results render as **native search cards** in the dsh Web UI — not raw markdown — and survive session replay.
 
 ![search_ai_projects rendering as a native search card in the dsh Web UI](docs/search-card.png)
 
@@ -13,7 +13,10 @@ Find AI/Agent/MCP/RAG/LLM open-source projects without leaving your agent sessio
 | `search_ai_projects` | Searches the curated AIGC Radar library: GitHub projects above a 500-star floor, enriched with categories, bilingual (zh/en) tags and descriptions, and daily star-growth metrics |
 | `get_project_categories` | Lists the category taxonomy (categories + subcategory counts) for filter discovery |
 
-Plus a system-prompt section that teaches the model when to route discovery questions here, so you don't have to say "use the tool" — ask "找个能做 deep research 的开源框架" and the agent comes back with starred, categorized results.
+Two routing layers make discovery automatic rather than opt-in:
+
+- **Explicit discovery** — ask "找个能做 deep research 的开源框架" and the agent comes back with starred, categorized results, no "use the tool" needed
+- **Proactive reuse check** — before the agent implements a major module or subsystem (auth, payments, workflow engines, search/indexing, protocol implementations, end-to-end RAG/Agent pipelines…), it runs one library check on its own initiative, so mature alternatives surface before anyone rebuilds them. Narrow work (bug fixes, renames, styling, CRUD) is deliberately excluded
 
 ### Why a native plugin instead of the MCP server?
 

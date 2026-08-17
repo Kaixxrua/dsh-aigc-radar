@@ -28,6 +28,9 @@ if (!search || !categories) throw new Error(`tools not registered: ${[...tools.k
 if (sections.length !== 1 || !sections[0].text.includes('search_ai_projects')) {
   throw new Error('system-prompt routing section missing')
 }
+if (!sections[0].text.includes('proactive reuse check')) {
+  throw new Error('routing section lost the proactive reuse clause')
+}
 console.log(`registered: ${[...tools.keys()].join(', ')}`)
 console.log(`prompt section: ${sections[0].name} (order ${sections[0].order}, ${sections[0].text.length} chars)`)
 
