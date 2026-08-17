@@ -10,9 +10,11 @@ import { apply, inject, name } from '../dist/index.mjs'
 
 const tools = new Map()
 const sections = []
+const listeners = {}
 const ctx = {
   tools: { register: (def) => tools.set(def.name, def) },
   systemPrompt: { section: (s) => sections.push(s) },
+  on: (event, listener) => { listeners[event] = listener },
 }
 
 if (name !== 'aigc-radar') throw new Error(`unexpected plugin name: ${name}`)
@@ -56,5 +58,24 @@ console.log(`first source: ${resultView.sources[0].title} — ${resultView.sourc
 const catValue = await categories.execute({}, { signal: AbortSignal.timeout(15000) })
 if (!Array.isArray(catValue.items) || catValue.items.length === 0) throw new Error('categories empty')
 console.log(`categories: ${catValue.items.length} roots`)
+
+// The proactive reuse listener must inject on implementation-scale prompts
+// and stay silent on narrow work.
+const userMsg = (text) => ({
+  id: 'm1', role: 'user', content: [{ type: 'text', text }], source: { kind: 'user' },
+})
+const runPreStep = (text, step = 1) => listeners['agent/pre-step'](
+  { messages: [userMsg(text)], turn: 1, step, signal: AbortSignal.timeout(5000) },
+  async () => ({ kind: 'enter', messages: [] }),
+)
+const positive = await runPreStep('帮我实现一个工作流引擎，支持定时任务和重试')
+if (positive.kind !== 'enter' || positive.messages.length !== 1) throw new Error('proactive injection missing')
+if (!positive.messages[0].content[0].text.includes('search_ai_projects')) throw new Error('injection lacks tool name')
+console.log(`proactive: injected on implementation prompt (${positive.messages[0].content[0].text.length} chars)`)
+const negative = await runPreStep('帮我修复 README 里的一个错别字')
+if (negative.kind !== 'enter' || negative.messages.length !== 0) throw new Error('proactive fired on narrow work')
+const lateStep = await runPreStep('帮我实现一个工作流引擎', 2)
+if (lateStep.messages.length !== 0) throw new Error('proactive fired past step 1')
+console.log('proactive: silent on narrow work and past step 1')
 
 console.log('verify OK')
