@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build": "tsdown src/index.ts --format esm --dts --external @deepseek-ai/cordis --external @deepseek-ai/dsh-tools --external @deepseek-ai/schemastery",
-    "prepare": "npm run build",
+    "prepare": "tsdown src/index.ts --format esm --dts --external @deepseek-ai/cordis --external @deepseek-ai/dsh-tools --external @deepseek-ai/schemastery",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
     "verify": "node scripts/verify-plugin.mjs"
