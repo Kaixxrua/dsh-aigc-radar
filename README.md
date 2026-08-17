@@ -4,6 +4,8 @@
 
 Find AI/Agent/MCP/RAG/LLM open-source projects without leaving your agent session. Results render as **native search cards** in the dsh Web UI — not raw markdown — and survive session replay.
 
+![search_ai_projects rendering as a native search card in the dsh Web UI](docs/search-card.png)
+
 ## What you get
 
 | Tool | What it does |
@@ -70,7 +72,7 @@ pnpm smoke        # hits the live API through the built client
 Load from a dsh source checkout without installing:
 
 ```sh
-pnpm dsh web --patch /path/to/dsh-aigc-radar/cordis.dev.yml
+pnpm dsh --profile web --patch /path/to/dsh-aigc-radar/cordis.dev.yml
 ```
 
 where `cordis.dev.yml` inserts the row by absolute path:
