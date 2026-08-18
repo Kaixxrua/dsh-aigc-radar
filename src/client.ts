@@ -1,12 +1,18 @@
 /**
- * Thin HTTP client for the public AIGC_NEWS (AIGC Radar) API.
+ * MCP JSON-RPC client for the AIGC Radar server (`POST {apiBase}/api/mcp`).
  *
  * The plugin never talks to GitHub directly: every query hits the curated
  * AIGC_NEWS library, which enriches GitHub projects with categories, bilingual
  * tags/descriptions, and growth metrics, and enforces a 500-star floor.
+ *
+ * The transport is the same stateless MCP endpoint that backs the public
+ * AIGC Radar MCP server, so every call lands in the server's rate-limit and
+ * quota domains: anonymous callers are bucketed per IP (daily quota), callers
+ * with an `mcpToken` per account tier (monthly quota). No `initialize`
+ * handshake — the endpoint is stateless and `tools/call` stands alone.
  */
 
-/** One project item as returned by `GET /api/projects`. */
+/** One project item as returned by the `search_github_ai_projects` tool. */
 export interface ApiProjectItem {
   id?: string | null
   full_name: string
@@ -33,9 +39,11 @@ export interface ApiProjectItem {
   growth_suspicion_score?: number
   is_recommended?: boolean
   pushed_at?: string | null
+  /** Server-built site link with utm_source=mcp; the plugin builds its own dsh-attributed one. */
+  detail_url?: string | null
 }
 
-/** Response envelope of `GET /api/projects`. */
+/** Structured content of the `search_github_ai_projects` tool result. */
 export interface ApiProjectsResponse {
   items?: ApiProjectItem[]
   total?: number
@@ -48,9 +56,11 @@ export interface ApiProjectsResponse {
   subcategory?: string
   q?: string
   sort?: string
+  lang?: string
+  attribution?: string
 }
 
-/** One category node of `GET /api/projects/categories`. */
+/** One category node of the `get_project_categories` tool result. */
 export interface ApiCategoryItem {
   slug: string
   name: string
@@ -62,79 +72,246 @@ export interface ApiCategoryItem {
   children?: ApiCategoryItem[]
 }
 
-/** Response envelope of `GET /api/projects/categories`. */
+/** Structured content of the `get_project_categories` tool result. */
 export interface ApiCategoriesResponse {
   items?: ApiCategoryItem[]
   total?: number
   today_count?: number
   recommended_count?: number
   min_stars?: number
+  attribution?: string
 }
 
-/** Query parameters accepted by `GET /api/projects`. */
+/** Query parameters mapped onto `search_github_ai_projects` arguments. */
 export interface SearchParams {
   q?: string
   scope?: 'all' | 'today' | 'recommended'
   category?: string
   subcategory?: string
   language?: string
+  /** Omitted from the wire when undefined, so the server's documented defaults rule. */
   sort?: 'relevance' | 'hot' | 'stars' | 'updated' | 'recent' | 'name'
   page?: number
+  /** Sent as `limit`; the MCP contract caps it at 20. */
   page_size?: number
 }
 
-/** Fetch JSON from the AIGC Radar API, honoring the caller's signal. */
-export async function fetchJson<T>(
+/** Quota/rate-limit failure from the MCP endpoint (HTTP 429), with structured detail. */
+export class McpQuotaError extends Error {
+  /** 'daily' | 'monthly' for quota buckets; undefined for the minute burst bucket. */
+  readonly quotaScope?: string | undefined
+  readonly tier?: string | undefined
+  readonly limit?: number | undefined
+  readonly retryAfter: number
+
+  constructor(
+    message: string,
+    opts: { quotaScope?: string | undefined; tier?: string | undefined; limit?: number | undefined; retryAfter: number },
+  ) {
+    super(message)
+    this.name = 'McpQuotaError'
+    this.quotaScope = opts.quotaScope
+    this.tier = opts.tier
+    this.limit = opts.limit
+    this.retryAfter = opts.retryAfter
+  }
+}
+
+const MCP_PROTOCOL_VERSION = '2025-06-18'
+const PLUGIN_VERSION = '0.2.0'
+/** The MCP `search_github_ai_projects` contract caps `limit` at 20. */
+const MCP_TOOL_LIMIT_MAX = 20
+/** Mirror of the server's minute-window burst bucket, for header-less 429s. */
+const BURST_WINDOW_SECONDS = 60
+
+let requestCounter = 0
+
+/** Humanize a retry delay: seconds up close, then minutes, then hours. */
+export function humanizeSeconds(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return 'a moment'
+  if (seconds < 120) return `${Math.ceil(seconds)}s`
+  if (seconds < 3600) return `${Math.ceil(seconds / 60)}min`
+  return `${Math.ceil(seconds / 3600)}h`
+}
+
+/** Structured `error.data` carried by the server's 429 quota projection. */
+export interface QuotaErrorData {
+  quota_scope?: string
+  tier?: string
+  limit?: number
+  retry_after?: number
+}
+
+/** Build the actionable message for a 429, from the server's structured error data. */
+export function quotaErrorMessage(
   apiBase: string,
-  path: string,
-  params: Record<string, string | number>,
+  data: QuotaErrorData | undefined,
+  retryAfter: number,
+): string {
+  const wait = humanizeSeconds(retryAfter)
+  if (data?.quota_scope === 'daily') {
+    return (
+      `AIGC Radar anonymous daily quota exhausted (${data.limit ?? 100} tool calls/day per IP). ` +
+      `Create a free MCP token at ${apiBase}/mcp and set it as mcpToken in the dsh-aigc-radar ` +
+      `plugin config for a monthly quota, or retry in ${wait}.`
+    )
+  }
+  if (data?.quota_scope === 'monthly' && data.tier === 'member') {
+    return (
+      `AIGC Radar member monthly quota exhausted (${data.limit ?? 100000} tool calls/month); ` +
+      `the window resets in ${wait}.`
+    )
+  }
+  if (data?.quota_scope === 'monthly') {
+    return (
+      `AIGC Radar free monthly quota exhausted (${data.limit ?? 3000} tool calls/month). ` +
+      `Upgrade to a membership at ${apiBase}/membership for a higher quota, or retry in ${wait}.`
+    )
+  }
+  return `AIGC Radar rate limit exceeded; slow down and retry after ${wait}.`
+}
+
+interface JsonRpcErrorBody {
+  error?: {
+    code?: number
+    message?: string
+    data?: QuotaErrorData
+  }
+  result?: {
+    content?: { type?: string; text?: string }[]
+    structuredContent?: unknown
+    isError?: boolean
+  }
+}
+
+/** Extract the tool-level error message out of an isError tool result. */
+function toolResultError(result: NonNullable<JsonRpcErrorBody['result']>): string {
+  const text = result.content?.find((part) => part.type === 'text' && typeof part.text === 'string')?.text
+  if (text !== undefined) {
+    try {
+      const parsed = JSON.parse(text) as { error?: unknown }
+      if (typeof parsed.error === 'string' && parsed.error.length > 0) return parsed.error
+    } catch {
+      // not JSON — fall through to the raw text
+    }
+    if (text.length > 0) return text
+  }
+  return 'AIGC Radar tool call failed.'
+}
+
+/**
+ * Call one tool on the AIGC Radar MCP endpoint and return its structured content.
+ *
+ * Error ladder: transport failure → HTTP 429 (McpQuotaError, quota or burst) →
+ * other HTTP errors → JSON-RPC error envelope → tool-level isError result →
+ * malformed structuredContent. Anything the model can act on (bad arguments,
+ * exhausted quota) surfaces as a message it can relay or retry against.
+ */
+export async function callMcpTool<T>(
+  apiBase: string,
+  token: string,
+  name: string,
+  args: Record<string, unknown>,
   signal: AbortSignal,
 ): Promise<T> {
-  const url = new URL(path, apiBase)
-  for (const [key, value] of Object.entries(params)) {
-    if (typeof value === 'string' && value.length === 0) continue
-    url.searchParams.set(key, String(value))
+  const url = `${apiBase}/api/mcp`
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    accept: 'application/json',
+    'mcp-protocol-version': MCP_PROTOCOL_VERSION,
+    'user-agent': `dsh-aigc-radar/${PLUGIN_VERSION}`,
   }
+  if (token.length > 0) headers.authorization = `Bearer ${token}`
+
   let res: Response
   try {
     res = await fetch(url, {
+      method: 'POST',
       signal,
-      headers: { accept: 'application/json' },
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: ++requestCounter,
+        method: 'tools/call',
+        params: { name, arguments: args },
+      }),
     })
   } catch (cause) {
-    throw new Error(`AIGC Radar request failed: ${url.href} (${cause instanceof Error ? cause.message : String(cause)})`)
+    throw new Error(
+      `AIGC Radar request failed: ${url} (${cause instanceof Error ? cause.message : String(cause)})`,
+    )
+  }
+
+  if (res.status === 429) {
+    let parsed: JsonRpcErrorBody | undefined
+    try {
+      parsed = (await res.json()) as JsonRpcErrorBody
+    } catch {
+      parsed = undefined
+    }
+    const data = parsed?.error?.data
+    const headerRetry = Number.parseInt(res.headers.get('retry-after') ?? '', 10)
+    const retryAfter =
+      typeof data?.retry_after === 'number' && data.retry_after > 0
+        ? data.retry_after
+        : Number.isFinite(headerRetry) && headerRetry > 0
+          ? headerRetry
+          : BURST_WINDOW_SECONDS
+    throw new McpQuotaError(quotaErrorMessage(apiBase, data, retryAfter), {
+      quotaScope: typeof data?.quota_scope === 'string' ? data.quota_scope : undefined,
+      tier: typeof data?.tier === 'string' ? data.tier : undefined,
+      limit: typeof data?.limit === 'number' ? data.limit : undefined,
+      retryAfter,
+    })
   }
   if (!res.ok) {
-    throw new Error(`AIGC Radar API returned HTTP ${res.status} for ${url.href}`)
+    throw new Error(`AIGC Radar MCP returned HTTP ${res.status} for ${url}`)
   }
-  return await res.json() as T
+
+  const body = (await res.json()) as JsonRpcErrorBody
+  if (body.error !== undefined) {
+    throw new Error(`AIGC Radar MCP error ${body.error.code ?? ''}: ${body.error.message ?? 'unknown error'}`)
+  }
+  const result = body.result
+  if (result === undefined || typeof result !== 'object') {
+    throw new Error('AIGC Radar MCP returned a malformed response (missing result).')
+  }
+  if (result.isError === true) {
+    throw new Error(toolResultError(result))
+  }
+  if (typeof result.structuredContent !== 'object' || result.structuredContent === null) {
+    throw new Error('AIGC Radar MCP returned a malformed tool result (missing structuredContent).')
+  }
+  return result.structuredContent as T
 }
 
-/** Run a project search against the curated library. */
+/** Run a project search against the curated library via `search_github_ai_projects`. */
 export function searchProjects(
   apiBase: string,
+  token: string,
   params: SearchParams,
   signal: AbortSignal,
 ): Promise<ApiProjectsResponse> {
-  return fetchJson<ApiProjectsResponse>(apiBase, '/api/projects', {
-    source: 'github',
+  const args: Record<string, unknown> = {
+    q: params.q ?? '',
     scope: params.scope ?? 'all',
     category: params.category ?? '',
     subcategory: params.subcategory ?? '',
-    q: params.q ?? '',
     language: params.language ?? '',
-    sort: params.sort ?? 'relevance',
     page: params.page ?? 1,
-    page_size: params.page_size ?? 10,
-  }, signal)
+    limit: Math.min(MCP_TOOL_LIMIT_MAX, params.page_size ?? 10),
+  }
+  if (params.sort !== undefined) args.sort = params.sort
+  return callMcpTool<ApiProjectsResponse>(apiBase, token, 'search_github_ai_projects', args, signal)
 }
 
-/** List the curated category taxonomy. */
+/** List the curated category taxonomy via `get_project_categories`. */
 export function listCategories(
   apiBase: string,
+  token: string,
   signal: AbortSignal,
 ): Promise<ApiCategoriesResponse> {
-  return fetchJson<ApiCategoriesResponse>(apiBase, '/api/projects/categories', { source: 'github' }, signal)
+  return callMcpTool<ApiCategoriesResponse>(apiBase, token, 'get_project_categories', {}, signal)
 }
 
 /** Site detail URL for one project, with dsh attribution. */

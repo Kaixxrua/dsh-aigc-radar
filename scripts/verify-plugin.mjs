@@ -22,7 +22,12 @@ for (const dep of ['tools', 'systemPrompt']) {
   if (!inject.includes(dep)) throw new Error(`missing inject: ${dep}`)
 }
 
-apply(ctx, { apiBase: 'https://aigcnews.cn', timeoutMs: 20000, maxPageSize: 10 })
+apply(ctx, {
+  apiBase: 'https://aigcnews.cn',
+  mcpToken: process.env.AIGC_RADAR_MCP_TOKEN ?? '',
+  timeoutMs: 20000,
+  maxPageSize: 10,
+})
 
 const search = tools.get('search_ai_projects')
 const categories = tools.get('get_project_categories')

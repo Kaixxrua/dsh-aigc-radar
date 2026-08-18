@@ -20,7 +20,7 @@ Two routing layers make discovery automatic rather than opt-in:
 
 ### Why a native plugin instead of the MCP server?
 
-AIGC Radar also ships as an MCP server. Mounting it in dsh works, but the native plugin goes further:
+AIGC Radar also ships as an MCP server — and this plugin now **rides that same MCP endpoint** (`POST /api/mcp`), so every call counts against the same rate limits and quotas. What the plugin adds on top:
 
 - **Native `web` search cards** — structured sources render as cards in the Web UI and are rebuilt faithfully on session replay (`presentationMeta`), which the MCP transport cannot express
 - **Typed canonical output** — the result is one validated JSON value, so Code Mode can compose it programmatically (`await tools.search_ai_projects({ q: 'mcp' })`) with full type inference
@@ -28,12 +28,12 @@ AIGC Radar also ships as an MCP server. Mounting it in dsh works, but the native
 
 ## Measured performance
 
-The search tool is a single HTTPS call to the AIGC Radar public edge — the numbers below measure that full path, taken 2026-08-18 from a China home-broadband connection (GeoDNS → CN edge) with [scripts/benchmark-search.sh](scripts/benchmark-search.sh) (10 representative zh/en queries × 3 trials against `https://aigcnews.cn/api/projects`):
+The search tool is a single HTTPS call to the AIGC Radar public edge — the numbers below measure that full path, taken 2026-08-18 from a China home-broadband connection (GeoDNS → CN edge) with [scripts/benchmark-search.sh](scripts/benchmark-search.sh) (10 representative zh/en queries × 3 trials against `https://aigcnews.cn/api/mcp`):
 
 | Metric | Value |
 |---|---|
-| Search latency p50 | 369 ms |
-| Search latency p95 | 412 ms |
+| Search latency p50 | 355 ms |
+| Search latency p95 | 810 ms |
 | Curated projects served | 18,426 — every one above the 500-star admission bar |
 | Taxonomy | 11 top-level categories, bilingual zh/en tags and descriptions |
 
@@ -72,9 +72,22 @@ Defaults point at the public deployment. Override the row from your profile's `c
       name: dsh-aigc-radar
       config:
         apiBase: 'https://aigcnews.cn'   # or your self-hosted AIGC_NEWS origin
+        mcpToken: ''                     # MCP token from {apiBase}/mcp; empty = anonymous
         timeoutMs: 20000
-        maxPageSize: 10
+        maxPageSize: 10                  # capped at 20 by the MCP contract
 ```
+
+### Quotas and the MCP token
+
+Every call lands in the MCP endpoint's quota domain — anonymous callers are bucketed per IP, token callers per account:
+
+| Caller | Quota | Window |
+|---|---|---|
+| Anonymous (no `mcpToken`) | 100 tool calls | per day, per IP |
+| Free account token | 3,000 tool calls | rolling 30 days |
+| Member token | 100,000 tool calls | rolling 30 days |
+
+To move out of the anonymous bucket, create a token at [aigcnews.cn/mcp](https://aigcnews.cn/mcp) (no special scopes needed for search) and set it as `mcpToken`. The token lives in your dsh profile config in plaintext, same as your LLM keys. When a quota is exhausted the tool returns an actionable error — which bucket, the limit, and how long to wait or where to upgrade — so the agent can relay it instead of failing silently.
 
 ## Develop
 
@@ -82,7 +95,8 @@ Defaults point at the public deployment. Override the row from your profile's `c
 pnpm install
 pnpm build        # tsdown → dist/
 pnpm typecheck    # tsc --noEmit
-pnpm smoke        # hits the live API through the built client
+pnpm test         # node --test (client unit tests against the built bundle)
+pnpm smoke        # hits the live MCP endpoint through the built client
 ```
 
 Load from a dsh source checkout without installing:
@@ -101,7 +115,7 @@ where `cordis.dev.yml` inserts the row by absolute path:
 
 ## Data and attribution
 
-Data provided by [AIGC Radar](https://aigcnews.cn) — the public API your dsh instance calls is the same one behind the AIGCNEWS site and the AIGC Radar MCP server. The curated library only covers GitHub projects with 500+ stars; general non-AI GitHub search with direct-GitHub fallback remains an MCP-server capability by design.
+Data provided by [AIGC Radar](https://aigcnews.cn) — your dsh instance calls the same MCP endpoint that backs the AIGC Radar MCP server, with the same quotas and rate limits. The curated library only covers GitHub projects with 500+ stars; general non-AI GitHub search with direct-GitHub fallback remains an MCP-server capability by design.
 
 ## License
 

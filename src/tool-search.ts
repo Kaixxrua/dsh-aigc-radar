@@ -233,9 +233,11 @@ function formatCategories(value: { total: number; minStars: number; items: ApiCa
 
 /**
  * Register both tools and the routing guidance. All registrations are
- * effect-scoped and unwind when the plugin unloads.
+ * effect-scoped and unwind when the plugin unloads. `mcpToken` rides every
+ * call: empty means anonymous (the server's per-IP daily quota), set means
+ * the caller's account tier (monthly quota).
  */
-export function applyRadarTools(ctx: Context, apiBase: string, timeoutMs: number, maxPageSize: number): void {
+export function applyRadarTools(ctx: Context, apiBase: string, mcpToken: string, timeoutMs: number, maxPageSize: number): void {
   ctx.systemPrompt.section({
     name: 'tool:aigc_radar',
     order: 110,
@@ -275,15 +277,16 @@ export function applyRadarTools(ctx: Context, apiBase: string, timeoutMs: number
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       const q = args.q?.trim() ?? ''
-      const scope = args.scope ?? 'all'
-      const sort = args.sort ?? (q.length > 0 ? 'relevance' : 'stars')
-      const data = await searchProjects(apiBase, {
+      // No client-side sort default: omitting it lets the server apply its
+      // documented defaults (relevance for queries; stars/hot/recent for
+      // queryless all/today/recommended scopes).
+      const data = await searchProjects(apiBase, mcpToken, {
         q,
-        scope,
+        scope: args.scope ?? 'all',
         ...args.category !== undefined ? { category: args.category.trim() } : {},
         ...args.subcategory !== undefined ? { subcategory: args.subcategory.trim() } : {},
         ...args.language !== undefined ? { language: args.language.trim() } : {},
-        sort,
+        ...args.sort !== undefined ? { sort: args.sort } : {},
         page: args.page ?? 1,
         page_size: maxPageSize,
       }, exec.signal)
@@ -314,7 +317,7 @@ export function applyRadarTools(ctx: Context, apiBase: string, timeoutMs: number
     timeoutMs,
     isConcurrencySafe: () => true,
     async execute(_args, exec) {
-      const data = await listCategories(apiBase, exec.signal)
+      const data = await listCategories(apiBase, mcpToken, exec.signal)
       const items = data.items ?? []
       return {
         total: data.total ?? items.length,

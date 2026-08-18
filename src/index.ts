@@ -14,8 +14,8 @@ import Schema from '@deepseek-ai/schemastery'
 import { applyProactiveReuse } from './proactive.js'
 import { applyRadarTools } from './tool-search.js'
 
-export { detailUrl, listCategories, searchProjects } from './client.js'
-export type { ApiCategoriesResponse, ApiProjectItem, ApiProjectsResponse, SearchParams } from './client.js'
+export { detailUrl, listCategories, searchProjects, callMcpTool, McpQuotaError, quotaErrorMessage, humanizeSeconds } from './client.js'
+export type { ApiCategoriesResponse, ApiCategoryItem, ApiProjectItem, ApiProjectsResponse, QuotaErrorData, SearchParams } from './client.js'
 
 export const name = 'aigc-radar'
 export const inject = ['tools', 'systemPrompt', 'agents'] as const
@@ -23,20 +23,27 @@ export const inject = ['tools', 'systemPrompt', 'agents'] as const
 export interface Config {
   /** AIGC_NEWS API origin; point at a self-hosted deployment if you run one. */
   apiBase: string
+  /**
+   * MCP token from {apiBase}/mcp; empty means anonymous, which the server
+   * buckets per IP with a tighter daily quota instead of your account's
+   * monthly one.
+   */
+  mcpToken: string
   /** Cooperative per-request budget handed to every tool call. */
   timeoutMs: number
-  /** Page size sent on every search; the model pages with `page`. */
+  /** Page size sent on every search; the model pages with `page`. Capped at 20 by the MCP contract. */
   maxPageSize: number
 }
 
 export const Config: Schema<Config> = Schema.object({
   apiBase: Schema.string().default('https://aigcnews.cn'),
+  mcpToken: Schema.string().default(''),
   timeoutMs: Schema.number().default(20000),
   maxPageSize: Schema.number().default(10),
 })
 
 export function apply(ctx: Context, config: Config) {
   const apiBase = config.apiBase.replace(/\/+$/, '')
-  applyRadarTools(ctx, apiBase, config.timeoutMs, config.maxPageSize)
+  applyRadarTools(ctx, apiBase, config.mcpToken ?? '', config.timeoutMs, config.maxPageSize)
   applyProactiveReuse(ctx)
 }

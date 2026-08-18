@@ -1,6 +1,6 @@
 {
   "name": "dsh-aigc-radar",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AIGC Radar for DeepSeek Harness — curated AI project search with native search cards, powered by the AIGC_NEWS library",
   "type": "module",
   "main": "dist/index.mjs",
@@ -24,6 +24,7 @@
     "build": "tsdown src/index.ts --format esm --dts --external @deepseek-ai/cordis --external @deepseek-ai/dsh-agent --external @deepseek-ai/dsh-llm --external @deepseek-ai/dsh-tools --external @deepseek-ai/schemastery",
     "prepare": "tsdown src/index.ts --format esm --dts --external @deepseek-ai/cordis --external @deepseek-ai/dsh-agent --external @deepseek-ai/dsh-llm --external @deepseek-ai/dsh-tools --external @deepseek-ai/schemastery",
     "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
     "smoke": "node scripts/smoke.mjs",
     "verify": "node scripts/verify-plugin.mjs"
   },
