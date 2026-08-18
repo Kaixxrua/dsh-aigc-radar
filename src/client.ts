@@ -265,6 +265,12 @@ export async function callMcpTool<T>(
     })
   }
   if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error(
+        `AIGC Radar MCP token is invalid, expired, or revoked. ` +
+          `Create a new token at ${apiBase}/mcp and update mcpToken in the dsh-aigc-radar plugin config.`,
+      )
+    }
     throw new Error(`AIGC Radar MCP returned HTTP ${res.status} for ${url}`)
   }
 
@@ -282,7 +288,16 @@ export async function callMcpTool<T>(
   if (typeof result.structuredContent !== 'object' || result.structuredContent === null) {
     throw new Error('AIGC Radar MCP returned a malformed tool result (missing structuredContent).')
   }
-  return result.structuredContent as T
+  const structured = result.structuredContent as Record<string, unknown>
+  if (structured.truncated === true) {
+    // Server-side MAX_TOOL_RESULT_CHARS overflow swaps the payload for
+    // {truncated, reason, preview} — rendering it as an empty search would lie.
+    throw new Error(
+      'AIGC Radar tool result exceeded the server size cap and was truncated; ' +
+        'narrow the query or reduce the page size and retry.',
+    )
+  }
+  return structured as T
 }
 
 /** Run a project search against the curated library via `search_github_ai_projects`. */

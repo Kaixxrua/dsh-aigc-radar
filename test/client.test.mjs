@@ -195,3 +195,21 @@ test('non-429 HTTP errors reject with the status', async () => {
     /HTTP 502/,
   )
 })
+
+test('401 rejects with actionable token guidance pointing at /mcp', async () => {
+  stubFetch(() => jsonResponse(401, { detail: 'Invalid or expired MCP token' }))
+  const err = await callMcpTool(API_BASE, 'tok123', 'search_github_ai_projects', {}, AbortSignal.timeout(5000))
+    .then(() => null, (e) => e)
+  assert.ok(err instanceof Error)
+  assert.match(err.message, /invalid, expired, or revoked/)
+  assert.match(err.message, /https:\/\/radar\.example\/mcp/)
+  assert.match(err.message, /mcpToken/)
+})
+
+test('truncated structuredContent rejects instead of masquerading as empty results', async () => {
+  stubFetch(() => toolResult({ truncated: true, reason: 'exceeds 100000 characters', preview: '{"items": [' }))
+  await assert.rejects(
+    callMcpTool(API_BASE, '', 'search_github_ai_projects', {}, AbortSignal.timeout(5000)),
+    /truncated.*narrow the query/i,
+  )
+})
