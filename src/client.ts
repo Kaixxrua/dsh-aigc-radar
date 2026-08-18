@@ -150,22 +150,29 @@ export function quotaErrorMessage(
 ): string {
   const wait = humanizeSeconds(retryAfter)
   if (data?.quota_scope === 'daily') {
+    const limit = data.limit ?? 100
     return (
-      `AIGC Radar anonymous daily quota exhausted (${data.limit ?? 100} tool calls/day per IP). ` +
-      `Create a free MCP token at ${apiBase}/mcp and set it as mcpToken in the dsh-aigc-radar ` +
-      `plugin config for a monthly quota, or retry in ${wait}.`
+      `AIGC Radar 已达今日匿名调用上限（${limit} 次/天，按 IP 计）。` +
+      `请前往 ${apiBase}/mcp 登录并创建 MCP token，然后在 dsh-aigc-radar 插件配置中设置 ` +
+      `mcpToken 以获得月度配额；也可前往 ${apiBase}/membership 开通 VIP 享更高额度。` +
+      `Anonymous daily quota exhausted (${limit} calls/day per IP): sign in at ${apiBase}/mcp ` +
+      `to create an MCP token, or upgrade to VIP at ${apiBase}/membership. Retry in ${wait}.`
     )
   }
   if (data?.quota_scope === 'monthly' && data.tier === 'member') {
+    const limit = data.limit ?? 20000
     return (
-      `AIGC Radar member monthly quota exhausted (${data.limit ?? 20000} tool calls/month); ` +
-      `the window resets in ${wait}.`
+      `AIGC Radar 本月 VIP 额度已用完（${limit} 次/月），配额窗口将在 ${wait} 后重置。` +
+      `VIP monthly quota exhausted (${limit} calls/month); the window resets in ${wait}.`
     )
   }
   if (data?.quota_scope === 'monthly') {
+    const limit = data.limit ?? 2000
     return (
-      `AIGC Radar free monthly quota exhausted (${data.limit ?? 2000} tool calls/month). ` +
-      `Upgrade to a membership at ${apiBase}/membership for a higher quota, or retry in ${wait}.`
+      `AIGC Radar 本月免费额度已用完（${limit} 次/月）。` +
+      `请前往 ${apiBase}/membership 开通 VIP 享更高额度，或等待配额窗口重置（${wait}）。` +
+      `Free monthly quota exhausted (${limit} calls/month): upgrade to VIP at ` +
+      `${apiBase}/membership for a higher quota, or retry in ${wait}.`
     )
   }
   return `AIGC Radar rate limit exceeded; slow down and retry after ${wait}.`

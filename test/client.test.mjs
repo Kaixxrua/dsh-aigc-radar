@@ -66,17 +66,20 @@ test('humanizeSeconds scales up and tolerates junk', () => {
 
 test('quotaErrorMessage covers all three quota branches plus the burst fallback', () => {
   const daily = quotaErrorMessage(API_BASE, { quota_scope: 'daily', tier: 'free', limit: 100 }, 3600)
-  assert.match(daily, /anonymous daily quota/)
-  assert.match(daily, /100 tool calls\/day/)
+  assert.match(daily, /今日匿名调用上限/)
+  assert.match(daily, /Anonymous daily quota/)
   assert.match(daily, /https:\/\/radar\.example\/mcp/)
+  assert.match(daily, /https:\/\/radar\.example\/membership/)
   assert.match(daily, /mcpToken/)
 
   const free = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'free', limit: 2000 }, 86400)
-  assert.match(free, /free monthly quota/)
+  assert.match(free, /本月免费额度已用完/)
+  assert.match(free, /Free monthly quota/)
   assert.match(free, /https:\/\/radar\.example\/membership/)
 
   const member = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'member', limit: 20000 }, 3600)
-  assert.match(member, /member monthly quota/)
+  assert.match(member, /本月 VIP 额度已用完/)
+  assert.match(member, /VIP monthly quota/)
   assert.match(member, /resets in 1h/)
   assert.doesNotMatch(member, /membership/)
 
