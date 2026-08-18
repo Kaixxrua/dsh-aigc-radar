@@ -62,6 +62,8 @@ Verify without booting:
 dsh --profile web --dump-config   # shows a "# == dsh-aigc-radar" layer
 ```
 
+**Recommended: register on the origin site and grab a free token.** The plugin works anonymously out of the box, but anonymous calls share a 100-calls/day per-IP bucket. A free account at [aigcnews.cn](https://aigcnews.cn) gets you a per-account monthly quota instead — create an MCP token on the [/mcp page](https://aigcnews.cn/mcp) (no special scopes needed for search) and paste it as `mcpToken` in the config below. See [Quotas and the MCP token](#quotas-and-the-mcp-token).
+
 ## Configure
 
 Defaults point at the public deployment. Override the row from your profile's `cordis.patch.yml` (a patch replaces the row's whole config):
@@ -84,8 +86,8 @@ Every call lands in the MCP endpoint's quota domain — anonymous callers are bu
 | Caller | Quota | Window |
 |---|---|---|
 | Anonymous (no `mcpToken`) | 100 tool calls | per day, per IP |
-| Free account token | 3,000 tool calls | rolling 30 days |
-| Member token | 100,000 tool calls | rolling 30 days |
+| Free account token | 2,000 tool calls | rolling 30 days |
+| Member token | 20,000 tool calls | rolling 30 days |
 
 To move out of the anonymous bucket, create a token at [aigcnews.cn/mcp](https://aigcnews.cn/mcp) (no special scopes needed for search) and set it as `mcpToken`. The token lives in your dsh profile config in plaintext, same as your LLM keys. When a quota is exhausted the tool returns an actionable error — which bucket, the limit, and how long to wait or where to upgrade — so the agent can relay it instead of failing silently.
 

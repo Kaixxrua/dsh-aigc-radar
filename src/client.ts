@@ -158,13 +158,13 @@ export function quotaErrorMessage(
   }
   if (data?.quota_scope === 'monthly' && data.tier === 'member') {
     return (
-      `AIGC Radar member monthly quota exhausted (${data.limit ?? 100000} tool calls/month); ` +
+      `AIGC Radar member monthly quota exhausted (${data.limit ?? 20000} tool calls/month); ` +
       `the window resets in ${wait}.`
     )
   }
   if (data?.quota_scope === 'monthly') {
     return (
-      `AIGC Radar free monthly quota exhausted (${data.limit ?? 3000} tool calls/month). ` +
+      `AIGC Radar free monthly quota exhausted (${data.limit ?? 2000} tool calls/month). ` +
       `Upgrade to a membership at ${apiBase}/membership for a higher quota, or retry in ${wait}.`
     )
   }

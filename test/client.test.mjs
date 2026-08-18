@@ -71,11 +71,11 @@ test('quotaErrorMessage covers all three quota branches plus the burst fallback'
   assert.match(daily, /https:\/\/radar\.example\/mcp/)
   assert.match(daily, /mcpToken/)
 
-  const free = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'free', limit: 3000 }, 86400)
+  const free = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'free', limit: 2000 }, 86400)
   assert.match(free, /free monthly quota/)
   assert.match(free, /https:\/\/radar\.example\/membership/)
 
-  const member = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'member', limit: 100000 }, 3600)
+  const member = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'member', limit: 20000 }, 3600)
   assert.match(member, /member monthly quota/)
   assert.match(member, /resets in 1h/)
   assert.doesNotMatch(member, /membership/)
