@@ -11,9 +11,14 @@
  * code, not by the model; only the query wording is left to the model.
  *
  * The heuristic mirrors the AIGC_NEWS MCP routing contract: fire on
- * implementation intent combined with a subsystem-scale signal, and never on
- * narrow work (fixes, renames, styling, CRUD, isolated edits).
+ * implementation intent combined with a capability-scale signal, and never on
+ * narrow work (fixes, renames, styling, CRUD, isolated edits). The gate is
+ * kept in sync with the Claude Code hook `aigc_radar_reuse_check.py`: scale
+ * covers everyday build shapes (tools, scripts, crawlers, plugins, sync /
+ * backup / export jobs…), not only "complete systems".
  */
+
+
 import type { Context } from '@deepseek-ai/cordis'
 import type { MessageId, UserMessage } from '@deepseek-ai/dsh-llm'
 
@@ -44,11 +49,17 @@ declare module '@deepseek-ai/cordis' {
 
 /** Implementation-intent verbs, Chinese and English. */
 const INTENT_PATTERN =
-  /(?:实现|开发|搭建|构建|做一|写一|新增|自建|自研|设计一)|\b(?:implement|build|create|develop|scaffold|design|architect)\b/i
+  /(?:实现|开发|搭建|构建|做一|做个|写一|写个|新增|新建|自建|自研|设计一|从零|从头|手写|撸一|撸个)|\b(?:implement|build|create|develop|scaffold|design|architect|write\s+a|set\s+up|from\s+scratch)\b/i
 
-/** Subsystem-scale nouns: a capability with its own architecture or integration boundary. */
+/**
+ * Capability-scale nouns: anything with its own integration or maintenance
+ * boundary — from full systems down to everyday tools, scripts, crawlers,
+ * plugins, and sync/backup/conversion jobs. English alternatives rely on
+ * `\b` word boundaries, so `async`/`client`/`description` never false-match
+ * `sync`/`cli`/`script`.
+ */
 const SCALE_PATTERN =
-  /(?:系统|模块|服务|平台|引擎|框架|管道|流水线|子系统|工作流|队列|鉴权|认证|登录|支付|搜索|索引|网关|缓存层)|\b(?:system|module|service|platform|engine|framework|pipeline|subsystem|workflow|queue|auth(?:entication)?|payment|billing|search|indexing|sandbox|gateway|orm|cms|scheduler|notification)\b/i
+  /(?:系统|模块|服务|平台|引擎|框架|管道|管线|流水线|子系统|工作流|队列|鉴权|认证|登录|支付|搜索|索引|网关|缓存层|中间件|调度|看板|面板|完整|全栈|整套|后端|前端|微服务|插件|工具|脚本|爬虫|机器人|命令行|同步|备份|抓取|聚合|推送|转换|导入|导出)|\b(?:system|module|service|platform|engine|framework|pipeline|middleware|subsystem|workflow|queue|auth(?:entication)?|payment|billing|search|indexing|sandbox|gateway|orm|cms|scheduler|notification|dashboard|panel|backend|frontend|microservices?|plugins?|tools?|utility|scripts?|cli|bots?|crawlers?|scrapers?|extensions?|backup|sync|full[- ]?stack|complete)\b/i
 
 /** Extract the text of all text blocks in one message. */
 function messageText(message: UserMessage): string {
