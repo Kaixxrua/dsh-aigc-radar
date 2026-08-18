@@ -26,6 +26,19 @@ AIGC Radar also ships as an MCP server. Mounting it in dsh works, but the native
 - **Typed canonical output** — the result is one validated JSON value, so Code Mode can compose it programmatically (`await tools.search_ai_projects({ q: 'mcp' })`) with full type inference
 - **First-party prompt routing** — the discovery-routing guidance lives in system-prompt assembly, not in MCP instructions that clients may truncate
 
+## Measured performance
+
+The search tool is a single HTTPS call to the AIGC Radar public edge — the numbers below measure that full path, taken 2026-08-18 from a China home-broadband connection (GeoDNS → CN edge) with [scripts/benchmark-search.sh](scripts/benchmark-search.sh) (10 representative zh/en queries × 3 trials against `https://aigcnews.cn/api/projects`):
+
+| Metric | Value |
+|---|---|
+| Search latency p50 | 369 ms |
+| Search latency p95 | 412 ms |
+| Curated projects served | 18,426 — every one above the 500-star admission bar |
+| Taxonomy | 11 top-level categories, bilingual zh/en tags and descriptions |
+
+Index-quality benchmarks measured on the MCP interface — **3.5× faster than WebSearch** end-to-end (7.4 s vs 25.8 s median) and **98.3% first-tool routing accuracy** (59/60 trials) — live in the [main repo's benchmark section](https://github.com/Kaixxrua/AIGC_NEWS#benchmarks); this plugin serves the same dataset over the same API, so those numbers carry over.
+
 ## Install
 
 Requires `dsh` (`npx @deepseek-ai/dsh web`).
