@@ -45,6 +45,20 @@ Index-quality benchmarks measured on the MCP interface — **3.5× faster than W
 
 Requires `dsh` (`npx @deepseek-ai/dsh web`).
 
+**Recommended — install the prebuilt package from npm:**
+
+```sh
+dsh plugin --profile web add dsh-aigc-radar
+```
+
+For a reproducible install, pin the published release:
+
+```sh
+dsh plugin --profile web add dsh-aigc-radar@0.2.0
+```
+
+**Source fallback — install from GitHub:**
+
 ```sh
 dsh plugin --profile web add github:Kaixxrua/dsh-aigc-radar
 ```
@@ -56,7 +70,7 @@ allowBuilds:
   dsh-aigc-radar: true
 ```
 
-then re-run the `add`. Pin a commit (`github:Kaixxrua/dsh-aigc-radar#<sha>`) if you want install-time immutability.
+Then re-run the GitHub `add`. Pin a commit (`github:Kaixxrua/dsh-aigc-radar#<sha>`) if you want the source install to be immutable.
 
 Verify without booting:
 

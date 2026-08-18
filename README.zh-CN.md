@@ -45,6 +45,20 @@ AIGC Radar 本身也提供 MCP server——而本插件现在就**跑在同一�
 
 需要 `dsh`（`npx @deepseek-ai/dsh web`）。
 
+**推荐——从 npm 安装预构建包：**
+
+```sh
+dsh plugin --profile web add dsh-aigc-radar
+```
+
+需要可复现安装时，可固定已发布版本：
+
+```sh
+dsh plugin --profile web add dsh-aigc-radar@0.2.0
+```
+
+**源码兜底——从 GitHub 安装：**
+
 ```sh
 dsh plugin --profile web add github:Kaixxrua/dsh-aigc-radar
 ```
@@ -56,7 +70,7 @@ allowBuilds:
   dsh-aigc-radar: true
 ```
 
-然后重跑 `add`。想要安装期不可变性，可以钉住提交（`github:Kaixxrua/dsh-aigc-radar#<sha>`）。
+然后重跑 GitHub `add`。想让源码安装保持不可变，可以固定提交（`github:Kaixxrua/dsh-aigc-radar#<sha>`）。
 
 不启动即可验证：
 
