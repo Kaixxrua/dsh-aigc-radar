@@ -114,12 +114,14 @@ test('searchProjects passes sort and sends the bearer token when configured', as
 })
 
 test('listCategories calls get_project_categories with empty arguments', async () => {
-  const taxonomy = { items: [{ slug: 'agent', name: 'Agent', count: 100 }], total: 1, min_stars: 500 }
+  const taxonomy = { items: [{ slug: 'agent', name: 'Agent', project_count: 100, subcategories: [{ slug: 'mcp', name: 'MCP', project_count: 20 }] }], total: 1, min_stars: 500 }
   const calls = stubFetch(() => toolResult(taxonomy))
   const result = await listCategories(API_BASE, '', AbortSignal.timeout(5000))
   assert.deepEqual(JSON.parse(calls[0].init.body).params.arguments, {})
   assert.equal(result.total, 1)
   assert.equal(result.items[0].slug, 'agent')
+  assert.equal(result.items[0].count, 100)
+  assert.equal(result.items[0].children?.[0].count, 20)
 })
 
 test('429 with quota data rejects with an actionable McpQuotaError', async () => {

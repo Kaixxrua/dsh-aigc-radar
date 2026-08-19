@@ -66,10 +66,28 @@ export interface ApiCategoryItem {
   name: string
   name_zh?: string
   name_en?: string
+  /** Canonical plugin field; the server calls this project_count. */
   count: number
   kind?: string
   scope?: string | null
   children?: ApiCategoryItem[]
+}
+
+/** Normalize the Python MCP taxonomy payload to the plugin's stable shape. */
+function normalizeCategory(item: Record<string, unknown>): ApiCategoryItem {
+  const rawChildren = Array.isArray(item.subcategories) ? item.subcategories : item.children
+  return {
+    slug: String(item.slug ?? ''),
+    name: String(item.name ?? ''),
+    ...typeof item.name_zh === 'string' ? { name_zh: item.name_zh } : {},
+    ...typeof item.name_en === 'string' ? { name_en: item.name_en } : {},
+    count: typeof item.project_count === 'number' ? item.project_count : typeof item.count === 'number' ? item.count : 0,
+    ...typeof item.kind === 'string' ? { kind: item.kind } : {},
+    ...typeof item.scope === 'string' || item.scope === null ? { scope: item.scope } : {},
+    children: Array.isArray(rawChildren)
+      ? rawChildren.filter((child): child is Record<string, unknown> => typeof child === 'object' && child !== null).map(normalizeCategory)
+      : [],
+  }
 }
 
 /** Structured content of the `get_project_categories` tool result. */
@@ -328,12 +346,16 @@ export function searchProjects(
 }
 
 /** List the curated category taxonomy via `get_project_categories`. */
-export function listCategories(
+export async function listCategories(
   apiBase: string,
   token: string,
   signal: AbortSignal,
 ): Promise<ApiCategoriesResponse> {
-  return callMcpTool<ApiCategoriesResponse>(apiBase, token, 'get_project_categories', {}, signal)
+  const data = await callMcpTool<ApiCategoriesResponse>(apiBase, token, 'get_project_categories', {}, signal)
+  return {
+    ...data,
+    items: (data.items ?? []).map((item) => normalizeCategory(item as unknown as Record<string, unknown>)),
+  }
 }
 
 /** Site detail URL for one project, with dsh attribution. */
