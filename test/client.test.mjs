@@ -70,12 +70,16 @@ test('quotaErrorMessage covers all three quota branches plus the burst fallback'
   assert.match(daily, /Anonymous daily quota/)
   assert.match(daily, /https:\/\/radar\.example\/mcp/)
   assert.match(daily, /https:\/\/radar\.example\/membership/)
-  assert.match(daily, /mcpToken/)
+  assert.match(daily, /重新生成带 token 的命令/)
+  assert.match(daily, /regenerate the tokenized install command/)
+  assert.match(daily, /登录后还可前往/)
 
   const free = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'free', limit: 2000 }, 86400)
   assert.match(free, /本月免费额度已用完/)
   assert.match(free, /Free monthly quota/)
   assert.match(free, /https:\/\/radar\.example\/membership/)
+  assert.match(free, /无需更换或重新配置/)
+  assert.match(free, /no reconfiguration needed/)
 
   const member = quotaErrorMessage(API_BASE, { quota_scope: 'monthly', tier: 'member', limit: 20000 }, 3600)
   assert.match(member, /本月 VIP 额度已用完/)

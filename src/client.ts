@@ -171,10 +171,13 @@ export function quotaErrorMessage(
     const limit = data.limit ?? 100
     return (
       `AIGC Radar 已达今日匿名调用上限（${limit} 次/天，按 IP 计）。` +
-      `请前往 ${apiBase}/mcp 登录并创建 MCP token，然后在 dsh-aigc-radar 插件配置中设置 ` +
-      `mcpToken 以获得月度配额；也可前往 ${apiBase}/membership 开通 VIP 享更高额度。` +
-      `Anonymous daily quota exhausted (${limit} calls/day per IP): sign in at ${apiBase}/mcp ` +
-      `to create an MCP token, or upgrade to VIP at ${apiBase}/membership. Retry in ${wait}.`
+      `游客安装未配置 token。请前往 ${apiBase}/mcp 登录并创建 MCP token，` +
+      `再在安装向导重新生成带 token 的命令（或手动写入 dsh 的 mcpToken 配置）；` +
+      `登录后还可前往 ${apiBase}/membership 开通 VIP。` +
+      `Anonymous daily quota exhausted (${limit} calls/day per IP): the guest install has no token. ` +
+      `Sign in at ${apiBase}/mcp, create an MCP token, then regenerate the tokenized install command ` +
+      `(or set mcpToken in dsh config manually). After signing in, you can also upgrade to VIP at ` +
+      `${apiBase}/membership. Retry in ${wait}.`
     )
   }
   if (data?.quota_scope === 'monthly' && data.tier === 'member') {
@@ -188,9 +191,11 @@ export function quotaErrorMessage(
     const limit = data.limit ?? 2000
     return (
       `AIGC Radar 本月免费额度已用完（${limit} 次/月）。` +
-      `请前往 ${apiBase}/membership 开通 VIP 享更高额度，或等待配额窗口重置（${wait}）。` +
+      `请前往 ${apiBase}/membership 开通 VIP；支付成功后会立即作用于当前 MCP token，` +
+      `无需更换或重新配置。也可等待配额窗口重置（${wait}）。` +
       `Free monthly quota exhausted (${limit} calls/month): upgrade to VIP at ` +
-      `${apiBase}/membership for a higher quota, or retry in ${wait}.`
+      `${apiBase}/membership — it takes effect immediately on your existing MCP token, ` +
+      `with no reconfiguration needed — or retry in ${wait}.`
     )
   }
   return `AIGC Radar rate limit exceeded; slow down and retry after ${wait}.`
