@@ -80,21 +80,21 @@ dsh --profile web --dump-config   # shows a "# == dsh-aigc-radar" layer
 
 ### Updates
 
-The plain npm install normally records a compatible semver range, so you can explicitly opt this direct dependency into dsh's startup updater:
+Update an npm install within its declared semver range:
 
 ```sh
-dsh plugin-updates --profile web set dsh-aigc-radar auto-compatible
+dsh plugin --profile web update dsh-aigc-radar
 ```
 
-At startup, dsh checks eligible npm registry ranges before composing the profile and runs the equivalent of `pnpm update dsh-aigc-radar` without `--latest`. Checks are cached for about 24 hours after success and back off for about 6 hours after failure. `check` bypasses the success cooldown but honors a recent failure backoff; a successful manual check begins a fresh cooldown. A running dsh process is not hot-swapped; restart it to load an updated package. Update failures restore the full prior installation state — `package.json`, lockfile, and the `node_modules` tree — then allow startup to continue with the installed version. If a crash interrupts an update mid-transaction, the next startup recovers from a durable marker and restores or commits the snapshot before any profile composition begins.
+Restart dsh afterwards to load the new version — a running dsh process is not hot-swapped.
 
-Exact pins such as `dsh-aigc-radar@0.2.1`, Git/Git SHA or branch, file/link, workspace, tarball, alias, and local-path sources remain manual and are never silently changed by this feature. dsh's own core and template bundles are also never startup-update targets:
+If you pinned an exact version (for example `dsh-aigc-radar@0.2.1`), name the target version explicitly:
 
 ```sh
-dsh plugin-updates --profile web set dsh-aigc-radar off
-dsh plugin-updates --profile web check
-dsh plugin-updates --profile web status
+dsh plugin --profile web add dsh-aigc-radar@<version>
 ```
+
+Git/Git SHA or branch, file/link, workspace, tarball, and local-path installs stay manual and are never changed by these commands. Startup-time automatic update checks are not yet available in released dsh builds; until then, the commands above are the update path.
 
 **Recommended: register on the origin site and grab a free token.** The plugin works anonymously out of the box, but anonymous calls share a 100-calls/day per-IP bucket. A free account at [aigcnews.cn](https://aigcnews.cn) gets you a per-account monthly quota instead — create an MCP token on the [/mcp page](https://aigcnews.cn/mcp) (no special scopes needed for search) and paste it as `mcpToken` in the config below. See [Quotas and the MCP token](#quotas-and-the-mcp-token).
 

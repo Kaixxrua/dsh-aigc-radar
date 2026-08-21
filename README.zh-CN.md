@@ -80,21 +80,21 @@ dsh --profile web --dump-config   # 能看到 "# == dsh-aigc-radar" 配置层
 
 ### 更新
 
-普通的 npm 安装通常会在 profile 中记录兼容的 semver 范围。只有明确选择加入 dsh 的启动更新，才会检查这个直接依赖：
+在声明的 semver 范围内更新 npm 安装：
 
 ```sh
-dsh plugin-updates --profile web set dsh-aigc-radar auto-compatible
+dsh plugin --profile web update dsh-aigc-radar
 ```
 
-每次启动时，dsh 会在组合 profile 之前检查符合条件的 npm registry 依赖，并执行等价于 `pnpm update dsh-aigc-radar` 的更新，不使用 `--latest`。成功检查后约 24 小时内不会重复访问 registry，失败会退避约 6 小时。`check` 会跳过成功冷却，但仍遵守近期失败退避；手动检查成功后会重新开始冷却窗口。正在运行的 dsh 进程不会热切换；必须重启 dsh 才会加载更新后的代码。更新失败会完整还原此前的安装状态——`package.json`、lockfile 以及 `node_modules` 目录树——再用已安装版本继续启动。如果崩溃中断了更新事务，下次启动会通过持久化 marker 恢复快照，在任何 profile 组合之前完成还原或提交。
+更新后重启 dsh 才会加载新版本——正在运行的 dsh 进程不会热切换。
 
-精确版本（例如 `dsh-aigc-radar@0.2.1`）、Git/Git SHA 或分支、file/link、workspace、tarball、alias 以及本地路径来源仍需手动维护，此功能不会静默修改它们。dsh 自身的核心包和模板 bundle 也不会成为启动自动更新目标：
+如果固定了精确版本（例如 `dsh-aigc-radar@0.2.1`），需显式指定目标版本：
 
 ```sh
-dsh plugin-updates --profile web set dsh-aigc-radar off
-dsh plugin-updates --profile web check
-dsh plugin-updates --profile web status
+dsh plugin --profile web add dsh-aigc-radar@<版本>
 ```
+
+Git/Git SHA 或分支、file/link、workspace、tarball 以及本地路径安装仍需手动维护，更新命令不会改动它们。启动时自动更新检查尚未随官方 dsh 发布；在此之前，以上命令就是更新路径。
 
 **推荐：去源站注册并领一个免费 token。** 插件开箱即可匿名使用，但匿名调用共享 100 次/日/IP 的桶。在 [aigcnews.cn](https://aigcnews.cn) 注册免费账号即可获得按账号计的月配额——在 [/mcp 页面](https://aigcnews.cn/mcp)创建 MCP token（搜索不需要任何特殊 scope），粘贴为下方配置里的 `mcpToken`。详见[配额与 MCP token](#配额与-mcp-token)。
 
