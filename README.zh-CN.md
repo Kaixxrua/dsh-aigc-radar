@@ -1,12 +1,12 @@
 # dsh-aigc-radar
 
-[English](README.md) | **简体中文**
+[English](https://github.com/Kaixxrua/dsh-aigc-radar/blob/main/README.md) | **简体中文**
 
 面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的 [AIGC Radar](https://aigcnews.cn) 项目搜索插件。
 
 **别再重复造轮子。** 在你规划与实现的过程中，agent 会主动检索 AIGC Radar 精选项目库，在你写下第一行代码之前，找出已经解决同类问题的成熟、经实战验证的项目。检索结果以 **dsh Web UI 原生搜索卡片** 呈现——不是原始 markdown——并且在会话回放中完整保留。
 
-![search_ai_projects 在 dsh Web UI 中渲染为原生搜索卡片](docs/search-card.png)
+![search_ai_projects 在 dsh Web UI 中渲染为原生搜索卡片](https://raw.githubusercontent.com/Kaixxrua/dsh-aigc-radar/main/docs/search-card.png)
 
 ## 功能一览
 
@@ -30,7 +30,7 @@ AIGC Radar 本身也提供 MCP server——而本插件现在就**跑在同一�
 
 ## 实测性能
 
-搜索工具就是一次到 AIGC Radar 公共边缘的 HTTPS 调用——下面的数字测量的是完整链路，2026-08-18 测自中国家庭宽带（GeoDNS → 国内边缘），使用 [scripts/benchmark-search.sh](scripts/benchmark-search.sh)（10 条代表性中英查询 × 3 轮，打向 `https://aigcnews.cn/api/mcp`）：
+搜索工具就是一次到 AIGC Radar 公共边缘的 HTTPS 调用——下面的数字测量的是完整链路，2026-08-18 测自中国家庭宽带（GeoDNS → 国内边缘），使用 [scripts/benchmark-search.sh](https://github.com/Kaixxrua/dsh-aigc-radar/blob/main/scripts/benchmark-search.sh)（10 条代表性中英查询 × 3 轮，打向 `https://aigcnews.cn/api/mcp`）：
 
 | 指标 | 数值 |
 |---|---|
@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-aigc-radar
 需要可复现安装时，可固定已发布版本：
 
 ```sh
-dsh plugin --profile web add dsh-aigc-radar@0.2.0
+dsh plugin --profile web add dsh-aigc-radar@0.2.1
 ```
 
 **源码兜底——从 GitHub 安装：**
@@ -76,6 +76,24 @@ allowBuilds:
 
 ```sh
 dsh --profile web --dump-config   # 能看到 "# == dsh-aigc-radar" 配置层
+```
+
+### 更新
+
+普通的 npm 安装通常会在 profile 中记录兼容的 semver 范围。只有明确选择加入 dsh 的启动更新，才会检查这个直接依赖：
+
+```sh
+dsh plugin-updates --profile web set dsh-aigc-radar auto-compatible
+```
+
+每次启动时，dsh 会在组合 profile 之前检查符合条件的 npm registry 依赖，并执行等价于 `pnpm update dsh-aigc-radar` 的更新，不使用 `--latest`。成功检查后约 24 小时内不会重复访问 registry，失败会退避约 6 小时。`check` 会跳过成功冷却，但仍遵守近期失败退避；手动检查成功后会重新开始冷却窗口。正在运行的 dsh 进程不会热切换；必须重启 dsh 才会加载更新后的代码。更新失败会完整还原此前的安装状态——`package.json`、lockfile 以及 `node_modules` 目录树——再用已安装版本继续启动。如果崩溃中断了更新事务，下次启动会通过持久化 marker 恢复快照，在任何 profile 组合之前完成还原或提交。
+
+精确版本（例如 `dsh-aigc-radar@0.2.1`）、Git/Git SHA 或分支、file/link、workspace、tarball、alias 以及本地路径来源仍需手动维护，此功能不会静默修改它们。dsh 自身的核心包和模板 bundle 也不会成为启动自动更新目标：
+
+```sh
+dsh plugin-updates --profile web set dsh-aigc-radar off
+dsh plugin-updates --profile web check
+dsh plugin-updates --profile web status
 ```
 
 **推荐：去源站注册并领一个免费 token。** 插件开箱即可匿名使用，但匿名调用共享 100 次/日/IP 的桶。在 [aigcnews.cn](https://aigcnews.cn) 注册免费账号即可获得按账号计的月配额——在 [/mcp 页面](https://aigcnews.cn/mcp)创建 MCP token（搜索不需要任何特殊 scope），粘贴为下方配置里的 `mcpToken`。详见[配额与 MCP token](#配额与-mcp-token)。
@@ -107,13 +125,16 @@ dsh --profile web --dump-config   # 能看到 "# == dsh-aigc-radar" 配置层
 
 要跳出匿名桶，到 [aigcnews.cn/mcp](https://aigcnews.cn/mcp) 创建 token（搜索不需要特殊 scope）并设为 `mcpToken`。token 以明文保存在你的 dsh profile 配置里，与你的 LLM key 同级。配额耗尽时工具会返回可操作的错误信息——哪个桶、限额多少、要等多久或去哪升级——agent 可以把它转述给你，而不是静默失败。
 
-## 开发
+## 从源码 checkout 开发
+
+以下命令面向从 Git checkout 开始开发的贡献者。`test`、`verify` 和 `smoke` 都使用构建后的 bundle；`verify` 和 `smoke` 还会调用真实 MCP 端点。
 
 ```sh
 pnpm install
 pnpm build        # tsdown → dist/
 pnpm typecheck    # tsc --noEmit
 pnpm test         # node --test（针对构建产物的 client 单测）
+pnpm verify       # 验证注册、卡片、路由和真实搜索
 pnpm smoke        # 通过构建后的 client 打真实 MCP 端点
 ```
 

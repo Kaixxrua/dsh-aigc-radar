@@ -1,12 +1,12 @@
 # dsh-aigc-radar
 
-**English** | [简体中文](README.zh-CN.md)
+**English** | [简体中文](https://github.com/Kaixxrua/dsh-aigc-radar/blob/main/README.zh-CN.md)
 
 [AIGC Radar](https://aigcnews.cn) project search for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`).
 
 **Stop rebuilding what already exists.** While you plan and implement, the agent proactively checks the curated AIGC Radar library for mature, battle-tested projects that already solve your problem — before you write a line of code. Results render as **native search cards** in the dsh Web UI — not raw markdown — and survive session replay.
 
-![search_ai_projects rendering as a native search card in the dsh Web UI](docs/search-card.png)
+![search_ai_projects rendering as a native search card in the dsh Web UI](https://raw.githubusercontent.com/Kaixxrua/dsh-aigc-radar/main/docs/search-card.png)
 
 ## What you get
 
@@ -30,7 +30,7 @@ AIGC Radar also ships as an MCP server — and this plugin now **rides that same
 
 ## Measured performance
 
-The search tool is a single HTTPS call to the AIGC Radar public edge — the numbers below measure that full path, taken 2026-08-18 from a China home-broadband connection (GeoDNS → CN edge) with [scripts/benchmark-search.sh](scripts/benchmark-search.sh) (10 representative zh/en queries × 3 trials against `https://aigcnews.cn/api/mcp`):
+The search tool is a single HTTPS call to the AIGC Radar public edge — the numbers below measure that full path, taken 2026-08-18 from a China home-broadband connection (GeoDNS → CN edge) with [scripts/benchmark-search.sh](https://github.com/Kaixxrua/dsh-aigc-radar/blob/main/scripts/benchmark-search.sh) (10 representative zh/en queries × 3 trials against `https://aigcnews.cn/api/mcp`):
 
 | Metric | Value |
 |---|---|
@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-aigc-radar
 For a reproducible install, pin the published release:
 
 ```sh
-dsh plugin --profile web add dsh-aigc-radar@0.2.0
+dsh plugin --profile web add dsh-aigc-radar@0.2.1
 ```
 
 **Source fallback — install from GitHub:**
@@ -76,6 +76,24 @@ Verify without booting:
 
 ```sh
 dsh --profile web --dump-config   # shows a "# == dsh-aigc-radar" layer
+```
+
+### Updates
+
+The plain npm install normally records a compatible semver range, so you can explicitly opt this direct dependency into dsh's startup updater:
+
+```sh
+dsh plugin-updates --profile web set dsh-aigc-radar auto-compatible
+```
+
+At startup, dsh checks eligible npm registry ranges before composing the profile and runs the equivalent of `pnpm update dsh-aigc-radar` without `--latest`. Checks are cached for about 24 hours after success and back off for about 6 hours after failure. `check` bypasses the success cooldown but honors a recent failure backoff; a successful manual check begins a fresh cooldown. A running dsh process is not hot-swapped; restart it to load an updated package. Update failures restore the full prior installation state — `package.json`, lockfile, and the `node_modules` tree — then allow startup to continue with the installed version. If a crash interrupts an update mid-transaction, the next startup recovers from a durable marker and restores or commits the snapshot before any profile composition begins.
+
+Exact pins such as `dsh-aigc-radar@0.2.1`, Git/Git SHA or branch, file/link, workspace, tarball, alias, and local-path sources remain manual and are never silently changed by this feature. dsh's own core and template bundles are also never startup-update targets:
+
+```sh
+dsh plugin-updates --profile web set dsh-aigc-radar off
+dsh plugin-updates --profile web check
+dsh plugin-updates --profile web status
 ```
 
 **Recommended: register on the origin site and grab a free token.** The plugin works anonymously out of the box, but anonymous calls share a 100-calls/day per-IP bucket. A free account at [aigcnews.cn](https://aigcnews.cn) gets you a per-account monthly quota instead — create an MCP token on the [/mcp page](https://aigcnews.cn/mcp) (no special scopes needed for search) and paste it as `mcpToken` in the config below. See [Quotas and the MCP token](#quotas-and-the-mcp-token).
@@ -107,13 +125,16 @@ Every call lands in the MCP endpoint's quota domain — anonymous callers are bu
 
 To move out of the anonymous bucket, create a token at [aigcnews.cn/mcp](https://aigcnews.cn/mcp) (no special scopes needed for search) and set it as `mcpToken`. The token lives in your dsh profile config in plaintext, same as your LLM keys. When a quota is exhausted the tool returns an actionable error — which bucket, the limit, and how long to wait or where to upgrade — so the agent can relay it instead of failing silently.
 
-## Develop
+## Develop from a source checkout
+
+The commands below are for contributors working from a Git checkout. `test`, `verify`, and `smoke` use the built bundle; `verify` and `smoke` also call the live MCP endpoint.
 
 ```sh
 pnpm install
 pnpm build        # tsdown → dist/
 pnpm typecheck    # tsc --noEmit
 pnpm test         # node --test (client unit tests against the built bundle)
+pnpm verify       # validates registration, cards, routing, and live search
 pnpm smoke        # hits the live MCP endpoint through the built client
 ```
 
