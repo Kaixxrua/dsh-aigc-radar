@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-aigc-radar
 需要可复现安装时，可固定已发布版本：
 
 ```sh
-dsh plugin --profile web add dsh-aigc-radar@0.2.1
+dsh plugin --profile web add dsh-aigc-radar@0.2.2
 ```
 
 **源码兜底——从 GitHub 安装：**
@@ -88,6 +88,8 @@ dsh plugin --profile web update dsh-aigc-radar
 
 更新后重启 dsh 才会加载新版本——正在运行的 dsh 进程不会热切换。
 
+从 0.2.2 起，插件自身也会察觉新版本：dsh 启动时每进程做一次只读的 npm registry 检查，发现新版后 agent 会在下一轮对话开始时转达确切的更新命令。插件不会改动自身的安装目录。在插件配置中设 `updateCheck: false` 可关闭该检查。
+
 如果固定了精确版本（例如 `dsh-aigc-radar@0.2.1`），需显式指定目标版本：
 
 ```sh
@@ -111,6 +113,7 @@ Git/Git SHA 或分支、file/link、workspace、tarball 以及本地路径安装
         mcpToken: ''                     # 在 {apiBase}/mcp 创建的 MCP token；留空 = 匿名
         timeoutMs: 20000
         maxPageSize: 10                  # MCP 契约上限为 20
+        updateCheck: true                # 设为 false 关闭每进程一次的新版本检查
 ```
 
 ### 配额与 MCP token

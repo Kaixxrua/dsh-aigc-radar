@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-aigc-radar
 For a reproducible install, pin the published release:
 
 ```sh
-dsh plugin --profile web add dsh-aigc-radar@0.2.1
+dsh plugin --profile web add dsh-aigc-radar@0.2.2
 ```
 
 **Source fallback — install from GitHub:**
@@ -88,6 +88,8 @@ dsh plugin --profile web update dsh-aigc-radar
 
 Restart dsh afterwards to load the new version — a running dsh process is not hot-swapped.
 
+Since 0.2.2, the plugin itself also notices when a newer release exists: on dsh start it makes one read-only npm registry check per process, and the agent relays the exact update command at the start of the next turn. The plugin never modifies its own installation. Set `updateCheck: false` in the plugin config to disable the check.
+
 If you pinned an exact version (for example `dsh-aigc-radar@0.2.1`), name the target version explicitly:
 
 ```sh
@@ -111,6 +113,7 @@ Defaults point at the public deployment. Override the row from your profile's `c
         mcpToken: ''                     # MCP token from {apiBase}/mcp; empty = anonymous
         timeoutMs: 20000
         maxPageSize: 10                  # capped at 20 by the MCP contract
+        updateCheck: true                # set false to skip the once-per-process release check
 ```
 
 ### Quotas and the MCP token

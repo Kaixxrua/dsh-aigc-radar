@@ -21,6 +21,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { MessageId, UserMessage } from '@deepseek-ai/dsh-llm'
+import { resolvedUpdateNotice, updateNoticeMessage } from './update-notice.js'
 
 /**
  * Local mirror of `@deepseek-ai/dsh-agent`'s `PreStepDecision` and pre-step
@@ -100,6 +101,9 @@ function pluginUserMessage(text: string): UserMessage {
  * most once per turn.
  */
 export function applyProactiveReuse(ctx: Context): void {
+  // Per-process latch: the update notice is injected on the first turn that
+  // opens after the registry check resolved, then never again.
+  let updateNoticePending = true
   ctx.on('agent/pre-step', async (
     { messages, step, signal },
     next,
@@ -108,14 +112,25 @@ export function applyProactiveReuse(ctx: Context): void {
     if (decision.kind === 'reject' || signal.aborted) return decision
     if (step !== 1) return decision
 
-    const text = messages.map(messageText).join('\n')
-    if (!INTENT_PATTERN.test(text) || !SCALE_PATTERN.test(text)) return decision
+    const extras: UserMessage[] = []
+    if (updateNoticePending) {
+      const notice = await resolvedUpdateNotice()
+      if (notice !== undefined) {
+        updateNoticePending = false
+        extras.push(pluginUserMessage(updateNoticeMessage(notice)))
+      }
+    }
 
-    const matched = [...new Set(text.match(new RegExp(SCALE_PATTERN.source, 'gi')) ?? [])]
-    const notice = reuseCheckMessage(matched)
+    const text = messages.map(messageText).join('\n')
+    if (INTENT_PATTERN.test(text) && SCALE_PATTERN.test(text)) {
+      const matched = [...new Set(text.match(new RegExp(SCALE_PATTERN.source, 'gi')) ?? [])]
+      extras.push(pluginUserMessage(reuseCheckMessage(matched)))
+    }
+
+    if (extras.length === 0) return decision
     return {
       kind: 'enter',
-      messages: [...decision.messages, pluginUserMessage(notice)],
+      messages: [...decision.messages, ...extras],
     }
   }, { prepend: true })
 }

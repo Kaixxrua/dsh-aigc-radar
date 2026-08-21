@@ -9,6 +9,10 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { apply } from '../dist/index.mjs'
 
+// apply() kicks off the read-only npm release check; keep these tests
+// hermetic by making the network unreachable (the check fails open).
+globalThis.fetch = async () => { throw new Error('offline in tests') }
+
 /** Capture every `ctx.on` registration; stub everything else as a no-op. */
 function fakeContext() {
   const listeners = []
