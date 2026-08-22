@@ -137,7 +137,7 @@ export class McpQuotaError extends Error {
 
 const MCP_PROTOCOL_VERSION = '2025-06-18'
 /** The running plugin version; kept in lockstep with package.json (asserted by test/update-notice.test.mjs). */
-export const PLUGIN_VERSION = '0.2.2'
+export const PLUGIN_VERSION = '0.2.3'
 /** The MCP `search_github_ai_projects` contract caps `limit` at 20. */
 const MCP_TOOL_LIMIT_MAX = 20
 /** Mirror of the server's minute-window burst bucket, for header-less 429s. */
