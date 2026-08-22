@@ -98,7 +98,7 @@ dsh plugin --profile web add dsh-aigc-radar@<版本>
 
 Git/Git SHA 或分支、file/link、workspace、tarball 以及本地路径安装仍需手动维护，更新命令不会改动它们。启动时自动更新检查尚未随官方 dsh 发布；在此之前，以上命令就是更新路径。
 
-**推荐：去源站注册并领一个免费 token。** 插件开箱即可匿名使用，但匿名调用共享 100 次/日/IP 的桶。在 [aigcnews.cn](https://aigcnews.cn) 注册免费账号即可获得按账号计的月配额——在 [/mcp 页面](https://aigcnews.cn/mcp)创建 MCP token（搜索不需要任何特殊 scope），粘贴为下方配置里的 `mcpToken`。详见[配额与 MCP token](#配额与-mcp-token)。
+**推荐：去源站注册并领一个免费 token。** 插件开箱即可匿名使用，但匿名调用共享 30 次/日/IP 的桶；免费账号为每日 60 次并共享滚动 30 天 1,200 次，会员账号为每日 400 次并共享滚动 30 天 8,000 次。在 [aigcnews.cn](https://aigcnews.cn) 注册并在 [/mcp 页面](https://aigcnews.cn/mcp)创建 MCP token（搜索不需要任何特殊 scope），粘贴为下方配置里的 `mcpToken`。详见[配额与 MCP token](#配额与-mcp-token)。
 
 ## 配置
 
@@ -122,11 +122,11 @@ Git/Git SHA 或分支、file/link、workspace、tarball 以及本地路径安装
 
 | 调用方 | 配额 | 窗口 |
 |---|---|---|
-| 匿名（无 `mcpToken`） | 100 次工具调用 | 每日，按 IP |
-| 免费账号 token | 2,000 次工具调用 | 30 天滚动 |
-| 会员 token | 20,000 次工具调用 | 30 天滚动 |
+| 匿名（无 `mcpToken`） | 30 次工具调用 | 每日，按 IP |
+| 免费账号 token | 每日 60 次 + 1,200 次工具调用 | 日 pacing + 30 天滚动 |
+| 会员 token | 每日 400 次 + 8,000 次工具调用 | 日 pacing + 30 天滚动 |
 
-要跳出匿名桶，到 [aigcnews.cn/mcp](https://aigcnews.cn/mcp) 创建 token（搜索不需要特殊 scope）并设为 `mcpToken`。token 以明文保存在你的 dsh profile 配置里，与你的 LLM key 同级。配额耗尽时工具会返回可操作的错误信息——哪个桶、限额多少、要等多久或去哪升级——agent 可以把它转述给你，而不是静默失败。
+要跳出匿名桶，到 [aigcnews.cn/mcp](https://aigcnews.cn/mcp) 创建 token（搜索不需要特殊 scope）并设为 `mcpToken`。token 以明文保存在你的 dsh profile 配置里，与你的 LLM key 同级。登录档先检查日 pacing 桶，日限额触发时不会消耗月度配额。配额耗尽时工具会返回可操作的错误信息——哪个桶、限额多少、要等多久或去哪升级——agent 可以把它转述给你，而不是静默失败。
 
 ## 从源码 checkout 开发
 
