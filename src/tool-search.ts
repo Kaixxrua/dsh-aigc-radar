@@ -288,7 +288,6 @@ export function applyRadarTools(ctx: Context, apiBase: string, mcpToken: string,
         ...args.language !== undefined ? { language: args.language.trim() } : {},
         ...args.sort !== undefined ? { sort: args.sort } : {},
         page: args.page ?? 1,
-        page_size: maxPageSize,
       }, exec.signal)
       const projects = (data.items ?? []).map((item) => projectEntry(apiBase, item))
       return {

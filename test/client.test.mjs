@@ -105,6 +105,7 @@ test('searchProjects posts tools/call with clamped limit and omits sort when uns
   assert.equal(body.params.name, 'search_github_ai_projects')
   assert.equal(body.params.arguments.limit, 20)
   assert.equal(body.params.arguments.q, 'mcp')
+  assert.equal('page_size' in body.params.arguments, false)
   assert.equal('sort' in body.params.arguments, false)
 })
 

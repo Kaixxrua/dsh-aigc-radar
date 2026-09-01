@@ -1,6 +1,6 @@
 {
   "name": "dsh-aigc-radar",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "AIGC Radar for DeepSeek Harness — curated AI project search with native search cards, powered by the AIGC_NEWS library",
   "type": "module",
   "main": "dist/index.mjs",
