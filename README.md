@@ -18,7 +18,7 @@
 Two routing layers make discovery automatic rather than opt-in:
 
 - **Explicit discovery** — ask "找个能做 deep research 的开源框架" and the agent comes back with starred, categorized results, no "use the tool" needed
-- **Proactive reuse check** — before the agent implements a major module or subsystem (auth, payments, workflow engines, search/indexing, protocol implementations, end-to-end RAG/Agent pipelines…), it runs one library check on its own initiative, so mature alternatives surface before anyone rebuilds them. Narrow work (bug fixes, renames, styling, CRUD) is deliberately excluded
+- **Proactive reuse check** — before the agent implements a major module or subsystem (auth, payments, workflow engines, search/indexing, protocol implementations, end-to-end RAG/Agent pipelines…), or recommends the architecture / technology / build-vs-reuse approach for one, it runs one library check on its own initiative, so mature alternatives surface before anyone rebuilds them. Narrow work (bug fixes, renames, styling, CRUD) is deliberately excluded
 
 ### Why a native plugin instead of the MCP server?
 

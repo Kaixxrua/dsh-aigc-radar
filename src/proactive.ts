@@ -12,8 +12,11 @@
  *
  * The heuristic mirrors the AIGC_NEWS MCP routing contract: fire on
  * implementation intent combined with a capability-scale signal, and never on
- * narrow work (fixes, renames, styling, CRUD, isolated edits). The gate is
- * kept in sync with the Claude Code hook `aigc_radar_reuse_check.py`: scale
+ * narrow work (fixes, renames, styling, CRUD, isolated edits). Since 0.2.5 it
+ * also fires on selection/advisory intent (选型、推荐、采用、should I use…) —
+ * design-time advice is itself a reuse decision point, and waiting for the
+ * implementation phrasing means the hand-rolled path is already chosen. The
+ * gate is kept in sync with the Claude Code hook `aigc_radar_reuse_check.py`: scale
  * covers everyday build shapes (tools, scripts, crawlers, plugins, sync /
  * backup / export jobs…), not only "complete systems".
  */
@@ -48,9 +51,9 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** Implementation-intent verbs, Chinese and English. */
+/** Implementation and selection/advisory intent verbs, Chinese and English. */
 const INTENT_PATTERN =
-  /(?:实现|开发|搭建|构建|做一|做个|写一|写个|新增|新建|自建|自研|设计一|从零|从头|手写|撸一|撸个)|\b(?:implement|build|create|develop|scaffold|design|architect|write\s+a|set\s+up|from\s+scratch)\b/i
+  /(?:实现|开发|搭建|构建|做一|做个|写一|写个|新增|新建|自建|自研|设计一|从零|从头|手写|撸一|撸个|采用|引入|接入|集成|选型|推荐|建议|还是用|怎么选|哪个好)|\b(?:implement|build|create|develop|scaffold|design|architect|write\s+a|set\s+up|from\s+scratch|adopt|integrate|recommend|choose|pick|should\s+(?:i|we)\s+use|which\s+\w+\s+to\s+use|vs\.?|versus)\b/i
 
 /**
  * Capability-scale nouns: anything with its own integration or maintenance
@@ -73,10 +76,10 @@ function messageText(message: UserMessage): string {
 function reuseCheckMessage(matched: string[]): string {
   const hints = matched.slice(0, 4).map((word) => `"${word}"`).join(', ')
   return (
-    `[AIGC Radar reuse check] This request appears to implement a substantial capability (matched: ${hints}). ` +
-    'Before writing any code, call search_ai_projects once — translate the capability into concise English ' +
+    `[AIGC Radar reuse check] This request appears to build or choose the technical approach for a substantial capability (matched: ${hints}). ` +
+    'Before writing code or asserting a recommendation, call search_ai_projects once — translate the capability into concise English ' +
     'GitHub-style query terms — and weigh mature matches (500+ stars, categorized, with growth metrics) as ' +
-    'reuse or design-reference options alongside your plan. If nothing fits, proceed and note that the check ran. ' +
+    'reuse or design-reference options alongside your plan. If nothing fits, proceed and note that the check ran and why nothing fit. ' +
     'This check fires at most once per turn; do not repeat it.'
   )
 }

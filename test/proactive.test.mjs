@@ -59,6 +59,14 @@ const FIRE_PROMPTS = [
   '实现一个完整的 RAG 独立子系统',
   'Build a complete screenshot platform',
   'write a screenshot tool',
+  // Selection/advisory intent (added in 0.2.5): design-time advice is itself
+  // a reuse decision point — waiting for implementation phrasing means the
+  // hand-rolled path was already chosen.
+  '实时渲染场景采用 TexturePacker 等工具打图集还是纯 shader，网页性能会下降吗',
+  '帮我选型一个前端动画引擎',
+  '推荐一个微信公众号文章爬虫框架',
+  'should I use pixi.js or hand-roll a custom sprite engine',
+  'which framework would you recommend for the dashboard',
 ]
 
 const SILENT_PROMPTS = [
@@ -70,6 +78,10 @@ const SILENT_PROMPTS = [
   '手写一个 LRU 缓存',
   '帮我写一下项目 README',
   '修复 Agent 页面 CSS 样式',
+  // Advisory verbs without a capability-scale noun must stay silent.
+  '推荐几部科幻电影',
+  '这个配色方案哪个好看',
+  '我觉得这个工具图标不好看',
 ]
 
 const config = { apiBase: 'https://radar.example', mcpToken: '', timeoutMs: 1000, maxPageSize: 10 }
